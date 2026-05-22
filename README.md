@@ -96,17 +96,13 @@ MCP Client：支持 MCP 协议，负责与 MCP 服务器通信
 
 ## Modules
 
-| Module | Status | Description |
-|--------|--------|-------------|
-| ...    | WIP    | ...         |
 
-&lt;每个模块一行。Status 只写 WIP 或 Done。Description 用一句话。&gt;
 
 ---
 
 ## Tech Stack
 
-&lt;表格形式：Component / Choice 两列。&gt;
+
 
 ---
 
@@ -114,20 +110,19 @@ MCP Client：支持 MCP 协议，负责与 MCP 服务器通信
 
 &lt;tree 输出，展示目录组织。&gt;
 
+
 ---
 
 ## Quick Start
 
-&lt;W6 之后再写。现在空着或写 TODO。&gt;
 
 ---
 
 ## Roadmap
 
-&lt;8 周计划，每周一行，checkbox 形式。&gt;
 
 ---
 
 ## License
 
-MIT
+Apache-2.0
