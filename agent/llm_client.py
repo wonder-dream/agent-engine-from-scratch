@@ -42,13 +42,13 @@ class LLMClient:
         json_body = self.build_body(messages, tool_list)
 
         async with httpx.AsyncClient(timeout=self.timeout) as client:
-            response = await client.post(f"{self.base_url}/chat/completions",
-                                         headers=header,
-                                         json=json_body,)
+            response = await client.post(
+                f"{self.base_url}/chat/completions",
+                headers=header,
+                json=json_body,
+            )
         response.raise_for_status()
-        json_response = response.json()
-
-        return json_response
+        return response.json()
 
     async def chat_stream(self, messages: list[dict], tool_list: list | None = None) -> AsyncGenerator[str, None]:
         """发送流式请求，异步生成器逐块产出 delta.content 文本。
@@ -74,6 +74,7 @@ class LLMClient:
                                          headers=header,
                                          json=json_body,)
             response.raise_for_status()
+            # SSE 格式: 每行以 "data: " 开头，以 "[DONE]" 结束
             chunk_response = response.aiter_lines()
             async for line in chunk_response:
                 if not line.startswith("data: "):
@@ -81,8 +82,9 @@ class LLMClient:
                 data = line.removeprefix("data: ")
                 if data == "[DONE]":
                     break
-                parse = json.loads(data)
-                content = parse["choices"][0]["delta"].get("content")
+                chunk = json.loads(data)
+                # delta.content 只在模型输出文本时有值，tool_call 时不在此字段
+                content = chunk["choices"][0]["delta"].get("content")
                 if content:
                     yield content
 
