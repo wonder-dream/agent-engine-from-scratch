@@ -1,15 +1,14 @@
-from agent import agent
 from agent.agent import Agent
 from agent.llm_client import LLMClient
 import os
 from dotenv import load_dotenv
 
 from tools.registry import Registry
-from tools.tool import Tool
 
 load_dotenv()
 
 async def test_api_key():
+    """验证 Agent 无工具场景：DeepSeek API 直接回复。"""
 
     client = LLMClient(
         model=os.environ["deepseek_model"],
