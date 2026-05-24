@@ -222,3 +222,6 @@ __marimo__/
 
 # claude code
 .claude/
+
+# chromaDB
+chroma_db/
