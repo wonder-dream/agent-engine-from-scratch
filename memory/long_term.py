@@ -21,9 +21,9 @@ class LongTermMemory:
             ids=ids,
         )
 
-    async def retrieve(self, query: str, top_k: int = 5) -> list[str]:
+    async def retrieve(self, query: str, top_k: int = 5) -> list[str] | None:
         if self.collection.count() == 0:
-            return []
+            return None
 
         query_embeddings = self.model.encode([query]).tolist()
 
@@ -33,4 +33,4 @@ class LongTermMemory:
         )
 
         docs = results["documents"]
-        return docs[0] if docs else []
+        return docs[0] if docs else None

@@ -1,8 +1,8 @@
 import json
 
 from agent.llm_client import LLMClient
-from agent.prompt import Prompt
 from agent.state import AgentState
+from memory.manager import MemoryManager
 from tools.registry import Registry
 
 
@@ -12,8 +12,7 @@ class Agent:
         self.tools = tools
         self.state = AgentState.IDLE
         self.system_prompt = system_prompt
-        self.messages: list[dict] = []
-        self.prompt = Prompt(system_prompt)
+        self.memory = MemoryManager(self.client)
 
 
     async def execute(self, user_input: str) -> str:
@@ -33,7 +32,7 @@ class Agent:
             match self.state:
                 case AgentState.IDLE:
                     # 用 Prompt 组装 system + user 消息，初始化 messages
-                    self.messages = self.prompt.build(user_input)
+                    messages = self.memory.build_context(self.system_prompt, user_input)
                     self.state = AgentState.THOUGHT
                     print(self.state)
 
@@ -67,16 +66,17 @@ class Agent:
                 case AgentState.OBSERVATION:
                     # 把模型的 tool_calls 响应和工具结果追加回 messages，
                     # 然后跳回 THOUGHT 让 LLM 基于结果继续推理
-                    self.messages.append(msg)
-                    self.messages.append({
+                    self.memory.add_message(msg)
+                    self.memory.add_message({
                         "role": "tool",
                         "tool_call_id": tool_calls[0]["id"],
                         "content": json.dumps(results, ensure_ascii=False),
                     })
+                    messages = await self.memory.get_messages()
                     self.state = AgentState.THOUGHT
                     print(self.state)
 
                 case _:
                     raise ValueError("Unknown state")
-
+        await self.memory.finalize()
         return final_answer
