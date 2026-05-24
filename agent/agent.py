@@ -27,19 +27,20 @@ class Agent:
         tool_calls: list[dict] = []
         results: list = []
         final_answer: str = ""
+        messages: list = []
 
         while self.state != AgentState.FINAL_ANSWER:
             match self.state:
                 case AgentState.IDLE:
                     # 用 Prompt 组装 system + user 消息，初始化 messages
-                    messages = self.memory.build_context(self.system_prompt, user_input)
+                    messages = await self.memory.build_context(self.system_prompt, user_input)
                     self.state = AgentState.THOUGHT
                     print(self.state)
 
                 case AgentState.THOUGHT:
                     # 调 LLM，传入工具列表。LLM 决定返回文本还是 tool_calls
                     response = await self.client.chat(
-                        messages=self.messages,
+                        messages=messages,
                         tool_list=self.tools.to_openai_format(),
                     )
                     msg = response["choices"][0]["message"]

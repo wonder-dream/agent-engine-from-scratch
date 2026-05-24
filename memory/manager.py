@@ -39,6 +39,11 @@ class MemoryManager:
         )
         raw = response["choices"][0]["message"]["content"]
         raw = raw.strip().removeprefix("```json").removesuffix("```").strip()
-        facts = json.loads(raw)
+        try:
+            facts = json.loads(raw)
+        except json.JSONDecodeError:
+            facts = [raw]
+
+        facts = [str(f) if not isinstance(f, str) else f for f in facts]
 
         await self.long_term_memory.store(facts)

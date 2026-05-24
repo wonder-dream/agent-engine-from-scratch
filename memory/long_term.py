@@ -9,6 +9,7 @@ class LongTermMemory:
         self.collection = self.chroma_client.get_or_create_collection(name="long_term_memory")
 
     async def store(self, facts: list[str]) -> None:
+        facts = [f for f in facts if isinstance(f, str) and f.strip()]
         if not facts:
             return
 
@@ -21,9 +22,9 @@ class LongTermMemory:
             ids=ids,
         )
 
-    async def retrieve(self, query: str, top_k: int = 5) -> list[str] | None:
+    async def retrieve(self, query: str, top_k: int = 5) -> list[str]:
         if self.collection.count() == 0:
-            return None
+            return []
 
         query_embeddings = self.model.encode([query]).tolist()
 
@@ -33,4 +34,4 @@ class LongTermMemory:
         )
 
         docs = results["documents"]
-        return docs[0] if docs else None
+        return docs[0] if docs else []
