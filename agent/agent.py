@@ -1,3 +1,4 @@
+import asyncio
 import json
 
 from agent.llm_client import LLMClient
@@ -60,7 +61,11 @@ class Agent:
                     tool_name = tc["function"]["name"]
                     args = tc["function"]["arguments"]  # JSON 字符串
                     parsed_args = json.loads(args)
-                    results = self.tools.get(tool_name).fn(**parsed_args)
+                    tool = self.tools.get(tool_name)
+                    fn = tool.fn
+                    result = fn(**parsed_args)
+                    if asyncio.iscoroutine(result):
+                        result = await result
                     self.state = AgentState.OBSERVATION
                     print(self.state)
 

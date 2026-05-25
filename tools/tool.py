@@ -1,6 +1,5 @@
 from dataclasses import dataclass
-from typing import Callable
-
+from typing import Any, Callable
 
 @dataclass
 class Tool:
@@ -13,4 +12,4 @@ class Tool:
     name: str
     description: str
     parameters: dict    # JSON Schema，如 {"type": "object", "properties": {...}}
-    fn: Callable        # 可调用对象，接收 **kwargs
+    fn: Callable[..., Any]        # 可调用对象，接收 **kwargs
