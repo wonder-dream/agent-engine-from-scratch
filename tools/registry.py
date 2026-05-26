@@ -1,4 +1,5 @@
 import importlib
+import pkgutil
 
 from tools.tool import Tool
 
@@ -34,6 +35,19 @@ class Registry:
         Example: registry.discover("tools.builtin")
         """
         module = importlib.import_module(module_path)
-        for obj in vars(module).values():
-            if isinstance(obj, Tool):
-                self.register(obj)
+
+        if hasattr(module, "__path__"):
+            # 包：遍历所有子模块
+            for _, name, _ in pkgutil.iter_modules(
+                    module.__path__,
+                    prefix=module.__name__ + ".",
+            ):
+                sub = importlib.import_module(name)
+                for obj in vars(sub).values():
+                    if isinstance(obj, Tool):
+                        self.register(obj)
+        else:
+            # 单模块：直接扫
+            for obj in vars(module).values():
+                if isinstance(obj, Tool):
+                    self.register(obj)

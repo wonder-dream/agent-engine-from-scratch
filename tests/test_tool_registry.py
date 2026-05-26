@@ -1,7 +1,6 @@
 import os
 from dotenv import load_dotenv
 
-import tools
 from agent.agent import Agent
 from agent.llm_client import LLMClient
 from tools.registry import Registry
