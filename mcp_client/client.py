@@ -6,8 +6,9 @@ from mcp.client.sse import sse_client
 from mcp import StdioServerParameters
 from mcp.client.stdio import stdio_client
 
-from mcp.config import MCPConfig
-from mcp.tool import MCPTool
+from mcp_client.config import MCPConfig
+from mcp_client.tool import MCPTool
+from tools.registry import Registry
 
 
 class MCPClient:
@@ -15,8 +16,9 @@ class MCPClient:
     def __init__(self, config: MCPConfig) -> None:
         self._config = config
         self._sessions: dict[str, ClientSession] = {}
+        self._transports: dict[str, Any] = {}
 
-    async def connect(self, server_name: str) -> list[Any]:
+    async def connect(self, server_name: str) -> list[MCPTool]:
         cfg = self._config.servers[server_name]
 
         if cfg.transport == "stdio":
@@ -37,6 +39,7 @@ class MCPClient:
             )
 
         read, write = await transport.__aenter__()
+        self._transports[server_name] = transport
 
         session = ClientSession(read, write)
         await session.__aenter__()
@@ -57,3 +60,32 @@ class MCPClient:
             tool._client = self
             tools.append(tool)
         return tools
+
+    async def call_tool(self, server_name: str, tool_name: str, arguments: dict[str, Any] | None = None) -> str:
+        session = self._sessions[server_name]
+        call_result = await session.call_tool(tool_name, arguments)
+        result = ""
+        for block in call_result.content:
+            if hasattr(block, "text"):
+                result += block.text
+
+        return result
+
+    async def disconnect(self, server_name: str) -> None:
+        session = self._sessions.pop(server_name, None)
+        transport = self._transports.pop(server_name, None)
+        if session:
+            await session.__aexit__(None, None, None)
+        if transport:
+            await transport.__aexit__(None, None, None)
+
+    async def discover_and_register(self, registry: Registry) -> None:
+        for server_name in self._config.servers:
+            tools = await self.connect(server_name)
+            for tool in tools:
+                registry.register(tool)
+
+    async def disconnect_all(self) -> None:
+        for server_name in self._config.servers:
+            await self.disconnect(server_name)
+

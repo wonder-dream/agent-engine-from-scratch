@@ -1,13 +1,12 @@
 from dataclasses import dataclass, field
-
-from mcp.errors import MCPError
+from mcp_client.errors import MCPError
 from tools.tool import Tool
 
 
 @dataclass
 class MCPTool(Tool):
-    server_name: str
-    mcp_tool_name: str
+    server_name: str = ""
+    mcp_tool_name: str = ""
     _client: "MCPClient | None" = field(default=None, repr=False)
 
     def __post_init__(self):
