@@ -63,9 +63,9 @@ class Agent:
                     parsed_args = json.loads(args)
                     tool = self.tools.get(tool_name)
                     fn = tool.fn
-                    result = fn(**parsed_args)
-                    if asyncio.iscoroutine(result):
-                        result = await result
+                    results = fn(**parsed_args)
+                    if asyncio.iscoroutine(results):
+                        results = await results
                     self.state = AgentState.OBSERVATION
                     print(self.state)
 

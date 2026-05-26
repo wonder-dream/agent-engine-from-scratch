@@ -12,4 +12,4 @@ class Tool:
     name: str
     description: str
     parameters: dict    # JSON Schema，如 {"type": "object", "properties": {...}}
-    fn: Callable[..., Any]        # 可调用对象，接收 **kwargs
+    fn: Callable[..., Any] | None = None    # 可调用对象，接收 **kwargs
