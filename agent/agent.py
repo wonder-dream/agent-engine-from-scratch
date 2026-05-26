@@ -1,22 +1,26 @@
 import asyncio
 import json
+from typing import AsyncGenerator
 
 from agent.llm_client import LLMClient
 from agent.state import AgentState
 from memory.manager import MemoryManager
 from tools.registry import Registry
 
+from mcp_client.client import MCPClient
+
 
 class Agent:
-    def __init__(self, client: LLMClient, tools: Registry, system_prompt: str):
+    def __init__(self, client: LLMClient, tools: Registry, system_prompt: str,  mcp_client: MCPClient | None = None):
         self.client = client
         self.tools = tools
         self.state = AgentState.IDLE
         self.system_prompt = system_prompt
         self.memory = MemoryManager(self.client)
+        self.mcp_client = mcp_client
 
 
-    async def execute(self, user_input: str) -> str:
+    async def execute_stream(self, user_input: str) -> AsyncGenerator[dict, None]:
         self.state = AgentState.IDLE
         print(self.state)
 
@@ -35,8 +39,13 @@ class Agent:
                 case AgentState.IDLE:
                     # 用 Prompt 组装 system + user 消息，初始化 messages
                     messages = await self.memory.build_context(self.system_prompt, user_input)
+
+                    if self.mcp_client is not None:
+                        await self.mcp_client.discover_and_register(self.tools)
+
                     self.state = AgentState.THOUGHT
                     print(self.state)
+                    yield {"state": "idle"}
 
                 case AgentState.THOUGHT:
                     # 调 LLM，传入工具列表。LLM 决定返回文本还是 tool_calls
@@ -55,6 +64,8 @@ class Agent:
                         self.state = AgentState.FINAL_ANSWER
                         print(self.state)
 
+                    yield {"state": "thinking"}
+
                 case AgentState.ACTION:
                     # 从 tool_calls 里取函数名和参数，执行本地函数
                     tc = tool_calls[0]
@@ -69,6 +80,8 @@ class Agent:
                     self.state = AgentState.OBSERVATION
                     print(self.state)
 
+                    yield {"state": "action", "tool": tool_name, "args": parsed_args}
+
                 case AgentState.OBSERVATION:
                     # 把模型的 tool_calls 响应和工具结果追加回 messages，
                     # 然后跳回 THOUGHT 让 LLM 基于结果继续推理
@@ -82,7 +95,19 @@ class Agent:
                     self.state = AgentState.THOUGHT
                     print(self.state)
 
+                    yield {"state": "observation", "results": results}
+
                 case _:
                     raise ValueError("Unknown state")
         await self.memory.finalize()
-        return final_answer
+
+        if self.mcp_client is not None:
+            await self.mcp_client.disconnect_all()
+
+        yield {"state": "final", "answer": final_answer}
+
+    async def execute(self, user_input: str) -> str:
+        async for event in self.execute_stream(user_input):
+            if event["state"] == "final":
+                return event["answer"]
+        return ""
