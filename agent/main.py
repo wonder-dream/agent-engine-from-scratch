@@ -6,13 +6,12 @@ from contextlib import asynccontextmanager
 from dotenv import load_dotenv
 from fastapi import FastAPI
 from sse_starlette import EventSourceResponse
+from fastapi.middleware.cors import CORSMiddleware
 
-from agent import agent
 from agent.agent import Agent
 from agent.llm_client import LLMClient
 from agent.schemas import ChatRequest
 from tools.registry import Registry
-
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -34,6 +33,13 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(lifespan=lifespan)
+
+app.add_middleware(
+    CORSMiddleware,         # type: ignore[arg-type]
+    allow_origins=["*"],
+    allow_headers=["*"],
+    allow_methods=["*"],
+)
 
 @app.post("/chat/stream")
 async def chat_stream(request: ChatRequest):
@@ -60,3 +66,7 @@ async def chat_stream(request: ChatRequest):
             yield {"event": event["state"], "data": json.dumps(event, ensure_ascii=False)}
 
     return EventSourceResponse(_gen())
+
+@app.get("/health")
+async def health():
+    return {"status": "ok"}
